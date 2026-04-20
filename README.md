@@ -1,2 +1,1 @@
-# flex-stealer
-chilloutworlds.com // ful javascript
+niye bu kadar dosyaya ayırdın ki kingo
