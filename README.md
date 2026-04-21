@@ -1,22 +1,38 @@
 niye bu kadar dosyaya ayırdın ki kingo
 
-1. Katman: Function Sarmalayıcısının Aşılması
-Yazılımın neredeyse tüm modülleri new Function("kod...")() şeklinde bir sarmalayıcı içindeydi. Bu, statik analiz araçlarının (kod okuyucuların) içindeki kodu görmesini engeller.
+---
 
-Ne yaptık? scratch/extract_v2.js ile Node.js'in Function yapıcısını (constructor) "hook"ladık (ele geçirdik). Kod kendi kendini çalıştırmaya çalıştığı anda, çalışmasına izin vermeden içindeki ham JavaScript gövdesini yakalayıp dosyalara çıkardık.
-2. Katman: Sabit Havuzu (Constant Pool) ve Rotasyon
-Kodun içindeki tüm kritik veriler (dosya yolları, URL'ler, regexler) devasa bir dizi (array) içine gizlenmişti. Üstelik bu dizi, kod başlar başlamaz karmaşık bir döngüyle (örneğin 16 kez) döndürülüyordu (Array Rotation).
+# Flex Stealer - Deobfuscation & Security Analysis Report
 
-Ne yaptık? Dizinin ham halini yakaladık ve kodun içindeki rotasyon algoritmasını birebir taklit ederek diziyi "çalışma anındaki" (runtime) doğru dizilimine getirdik.
-3. Katman: Dizgi (String) Çözümleme
-Kod içinde hiçbir yerde "discord" veya "C:\\Users..." gibi açık metinler yoktu. Bunun yerine sQc20J(0x1db) gibi fonksiyon çağrıları vardı. Bu fonksiyonlar XOR, Base64 ve özel bir karakter haritası (charset mapping) kullanarak havuzdan veri çekiyordu.
+Bu repository, gelişmiş bir "Stealer" zararlı yazılımı olan **Flex Stealer** üzerinde gerçekleştirilen deobfuskasyon ve tersine mühendislik çalışmalarını içermektedir. Yazılımın karmaşık JS gizleme katmanları aşılarak, veri sızıntısı (exfiltration) ve veri çalma (credential harvesting) mantığı tamamen deşifre edilmiştir.
 
-Ne yaptık? Bir "Universal Resolver" (Evrensel Çözücü) yazdık. Tüm bu 0x... değerlerini tek tek havuzdaki karşılıklarıyla eşleştirdik ve koddaki bu fonksiyon çağrılarını gerçek metinlerle yer değiştirdik.
-4. Katman: Kontrol Akışı Düzleştirme (Control Flow Flattening)
-En zorlayıcı kısımdı. Bazı modüller (özellikle serviceConfig ve authProvider), while döngüleri ve switch blokları içine gizlenmiş "State Machine"ler (durum makineleri) kullanıyordu. Yani kod 1-2-3 diye gitmek yerine, bir jeneratör içinde sürekli sıçrayarak çalışıyordu.
+## 🛠️ İncelenen Obfuskasyon Katmanları
 
-Ne yaptık? Behavioral Tracing (Davranışı İzleme) yöntemini kullandık. Kodu kontrollü bir ortamda (sandbox) çalışırken izledik; hangi yollara girdiğini, hangi dosyaları okuduğunu Proxy nesneleriyle (ajan moleküller gibi düşünebilirsin) saniye saniye kaydettik.
-5. Katman: Refaktör ve Temizleme
-Tüm bu işlemlerden sonra elimizde çalışan ama hala çok karmaşık görünen devasa bir kod yığını vardı.
+Zararlı yazılımın analizini zorlaştırmak için kullanılan temel teknikler şunlardır:
 
-Ne yaptık? Bu yığını parçalara ayırdık. Belirlediğimiz dosya yollarını, şifreleme anahtarı çözme mantığını ve Discord API çağrılarını modern, okunabilir ve yorum satırlarıyla açıklanmış bir yapıya dönüştürdük.
+1.  **Dynamic Function Construction:** Kodun tamamı `new Function()` sarmalayıcıları içine alınarak statik analiz araçlarından (kod okuyuculardan) gizlenmiştir.
+2.  **Encapsulated Constant Pool:** Tüm dosya yolları, API URL'leri ve regex desenleri tek bir merkezi dizide (`string array`) toplanmış ve bu dizi çalışma anında (runtime) **N-adımlı rotasyona** tabi tutulmuştur.
+3.  **Multilayered String Encoding:** Dizgi (string) değerleri; XOR, Base64 ve özel karakter haritalama (charset mapping) yöntemleri kullanılarak çok katmanlı şekilde şifrelenmiştir.
+4.  **Control Flow Flattening:** Kodun mantıksal akışı, jeneratör fonksiyonları (`function*`) ve karmaşık `switch-case` blokları kullanılarak "düzleştirilmiş", böylece standart debugger takibi imkansız hale getirilmiştir.
+   
+
+## 🔬 Uygulanan Deobfuskasyon Metodolojisi
+
+Analiz sürecinde aşağıdaki teknik adımlar uygulanmıştır:
+
+*   **Function Hooking:** Node.js `Function` constructor'ı hooklanarak, çalışma anında oluşturulan ham JavaScript gövdesi dışarı aktarılmıştır.
+*   **Behavioral Tracing (Davranış İzleme):** Orijinal kod, kısıtlanmış bir sandbox ortamında çalıştırılmış; dosya sistemi ve ağ istekleri `Proxy` nesneleri kullanılarak anlık olarak izlenmiştir.
+*   **Universal String Resolution:** Geliştirilen özel "Resolver" scriptleri ile, kod içerisindeki yüzlerce şifreli çağrı (`decoder call`) gerçek metin karşılıklarıyla yer değiştirilmiştir.
+*   **Logic Reconstruction:** Deobfuskasyon sonrası ortaya çıkan ham mantık, okunabilir ve analiz edilebilir modern JavaScript yapısına (clean-code) refaktör edilmiştir.
+
+## 🔑 Önemli Bulgular
+
+Yapılan çalışma sonucunda şu kritik işlevler tespit ve döküme edilmiştir:
+*   **Discord Token Extraction:** Chromium (v10 AES-GCM) ve Firefox (storage/default) profilleri üzerinden derinlemesine token tarama protokolü.
+
+*   **App-Bound Encryption Bypass:** Modern Chromium tarayıcılardaki uygulama-bağlı şifrelemeyi aşmak için kullanılan yerel binary (`core-module-bin.js`) entegrasyonu.
+
+*   **Browser Data Harvesting:** Cookies, History ve Login Data verilerinin SQLite veritabanlarından `%TEMP%` dizinine klonlanarak sızdırılması.
+
+## ⚠️ Yasal Uyarı
+Bu proje tamamen **eğitim ve güvenlik araştırması** amaçlıdır. Burada paylaşılan bilgiler, güvenlik profesyonellerinin zararlı yazılım tekniklerini anlaması ve savunma mekanizmaları geliştirmesi için döküme edilmiştir. Kötüye kullanım sorumluluğu kullanıcıya aittir.
